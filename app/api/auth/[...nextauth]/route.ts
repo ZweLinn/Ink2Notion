@@ -1,10 +1,43 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
-import { supabaseAdmin } from "@/lib/supabase";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { getUserByEmail, verifyPassword, upsertOAuthUser } from "@/lib/auth";
 
 const handler = NextAuth({
   providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password are required");
+        }
+
+        const user = await getUserByEmail(credentials.email as string);
+        if (!user || !user.password_hash) {
+          throw new Error("Invalid email or password");
+        }
+
+        const isValid = await verifyPassword(
+          credentials.password as string,
+          user.password_hash
+        );
+        if (!isValid) {
+          throw new Error("Invalid email or password");
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.avatar_url,
+        };
+      },
+    }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -15,19 +48,16 @@ const handler = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
-      // Upsert user into Supabase on every login
-      const { error } = await supabaseAdmin.from("users").upsert(
-        {
+    async signIn({ user, account }) {
+      if (account?.provider === "google" || account?.provider === "github") {
+        await upsertOAuthUser({
           id: user.id,
-          email: user.email,
-          name: user.name,
-          avatar_url: user.image,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "email" }
-      );
-      if (error) console.error("Supabase upsert error:", error);
+          email: user.email ?? null,
+          name: user.name ?? null,
+          image: user.image ?? null,
+          provider: account.provider,
+        });
+      }
       return true;
     },
     async session({ session, token }) {
@@ -39,6 +69,9 @@ const handler = NextAuth({
   },
   pages: {
     signIn: "/login",
+  },
+  session: {
+    strategy: "jwt",
   },
 });
 

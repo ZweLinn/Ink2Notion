@@ -1,13 +1,20 @@
 -- ─── Users ─────────────────────────────────────────────────────────────────
 -- Mirrors NextAuth session data into Supabase for joins + RLS
 create table if not exists public.users (
-  id          text primary key,          -- NextAuth user ID (sub)
-  email       text unique not null,
-  name        text,
-  avatar_url  text,
-  created_at  timestamptz default now(),
-  updated_at  timestamptz default now()
+  id              text primary key,          -- NextAuth user ID (sub)
+  email           text unique not null,
+  name            text,
+  avatar_url      text,
+  password_hash   text,                      -- bcrypt hash for credentials users
+  provider        text default 'credentials', -- 'credentials', 'google', 'github'
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
 );
+
+-- Add columns if table already exists (safe to re-run)
+alter table public.users
+  add column if not exists password_hash text,
+  add column if not exists provider text default 'credentials';
 
 -- ─── Notion Connections ─────────────────────────────────────────────────────
 create table if not exists public.notion_connections (
