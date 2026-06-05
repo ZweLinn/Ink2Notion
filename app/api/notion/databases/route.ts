@@ -2,9 +2,10 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NOTION_VERSION } from "@/lib/notion";
+import { authOptions } from "@/lib/auth-options";
 
 export async function GET() {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -17,6 +18,7 @@ export async function GET() {
     .single();
 
   if (error || !conn) {
+    console.error("Databases route - supabase error:", error, "user_id:", session.user.id);
     return NextResponse.json(
       { error: "Notion not connected" },
       { status: 400 },

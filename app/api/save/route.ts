@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NOTION_VERSION } from "@/lib/notion";
 import { NoteType } from "@/types";
+import { authOptions } from "@/lib/auth-options";
 
 /* ─── Notion Block Helpers ──────────────────────────── */
 
@@ -177,7 +178,7 @@ function buildProperties(
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

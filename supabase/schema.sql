@@ -34,9 +34,11 @@ alter table public.users enable row level security;
 alter table public.notion_connections enable row level security;
 
 -- Users can only read/update their own row
+drop policy if exists "users: own row" on public.users;
 create policy "users: own row" on public.users
   for all using (id = current_setting('app.user_id', true));
 
 -- notion_connections: own rows only
+drop policy if exists "notion_connections: own rows" on public.notion_connections;
 create policy "notion_connections: own rows" on public.notion_connections
   for all using (user_id = current_setting('app.user_id', true));

@@ -1,62 +1,95 @@
-import Image from "next/image";
+"use client";
+
+import { useSession } from "next-auth/react";
+import { PenLine, ArrowRight, Code2 } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
+  const { data: session } = useSession();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex flex-col flex-1 items-center justify-center bg-background px-6">
+      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-center gap-12 text-center">
+        {/* Icon */}
+        {/*<div className="rounded-2xl bg-accent/10 p-4">
+          <PenLine className="h-10 w-10 text-accent" />
+        </div>*/}
+
+        {/* Heading */}
+        <div className="space-y-4">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            Ink2Notion
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mx-auto max-w-md text-lg text-muted">
+            Snap a photo of your handwritten notes. AI extracts the text and
+            saves them straight to your Notion database.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+
+        {/* CTA */}
+        {session ? (
+          <Link
+            href="/upload"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+          >
+            Go to Upload
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        ) : (
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+            >
+              Sign In
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-card-hover"
+            >
+              Create Account
+            </Link>
+          </div>
+        )}
+
+        {/* Features */}
+        <div className="grid gap-6 sm:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card p-5 text-left">
+            <h3 className="mb-2 text-sm font-semibold">📸 Snap & Extract</h3>
+            <p className="text-sm text-muted">
+              Upload a photo of handwritten notes — AI extracts the text
+              automatically.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5 text-left">
+            <h3 className="mb-2 text-sm font-semibold">
+              🏷️ Smart Classification
+            </h3>
+            <p className="text-sm text-muted">
+              Choose a note type (General, Meeting, Todo, Study) — extraction
+              adapts to each format.
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5 text-left">
+            <h3 className="mb-2 text-sm font-semibold">📋 Save to Notion</h3>
+            <p className="text-sm text-muted">
+              One click pushes the structured note into your Notion database
+              with proper formatting.
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="pb-8 text-xs text-muted">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://github.com/zwelinn/handwriting-to-notion"
             target="_blank"
             rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            <Code2 className="h-3.5 w-3.5" />
+            zwelinn/handwriting-to-notion
           </a>
         </div>
       </main>

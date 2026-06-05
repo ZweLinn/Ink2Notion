@@ -2,10 +2,11 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getNotionOAuthURL } from "@/lib/notion";
+import { authOptions } from "@/lib/auth-options";
 import crypto from "crypto";
 
 export async function GET() {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
