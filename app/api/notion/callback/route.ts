@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { exchangeNotionCode } from "@/lib/notion";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -11,11 +12,24 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   const error = searchParams.get("error");
 
   if (error || !code) {
     return NextResponse.redirect(new URL("/dashboard?notion=error", req.url));
   }
+
+  // Verify CSRF state token from cookie
+  const cookieStore = await cookies();
+  const storedState = cookieStore.get("notion_oauth_state")?.value;
+
+  if (!storedState || storedState !== state) {
+    cookieStore.delete("notion_oauth_state");
+    return NextResponse.redirect(new URL("/dashboard?notion=error", req.url));
+  }
+
+  // Consume the state token
+  cookieStore.delete("notion_oauth_state");
 
   try {
     const token = await exchangeNotionCode(code);
