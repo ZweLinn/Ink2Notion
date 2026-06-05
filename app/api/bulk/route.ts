@@ -30,9 +30,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Process sequentially to stay within Gemini free tier limits
+    // Process sequentially with a delay between each to stay within
+    // Gemini free tier limits (~30 requests per minute = 2s spacing).
+    const MIN_INTERVAL_MS = 3000;
     const results = [];
-    for (const file of files) {
+    for (let idx = 0; idx < files.length; idx++) {
+      const file = files[idx];
+
+      // Wait before each subsequent request to avoid rate limiting
+      if (idx > 0) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_INTERVAL_MS));
+      }
       try {
         // Validate per file
         if (!ALLOWED_TYPES.includes(file.type)) {
