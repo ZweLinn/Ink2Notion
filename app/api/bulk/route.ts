@@ -20,7 +20,10 @@ export async function POST(req: NextRequest) {
     const noteType = (formData.get("noteType") as NoteType) ?? "general";
 
     if (!files.length) {
-      return NextResponse.json({ error: "No images provided" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No images provided" },
+        { status: 400 },
+      );
     }
 
     if (files.length > MAX_FILES) {
@@ -65,7 +68,12 @@ export async function POST(req: NextRequest) {
         const base64 = buffer.toString("base64");
         const extracted = await extractHandwriting(base64, file.type, noteType);
 
-        results.push({ success: true, filename: file.name, noteType, extracted });
+        results.push({
+          success: true,
+          filename: file.name,
+          noteType,
+          extracted,
+        });
       } catch (err) {
         results.push({
           success: false,
@@ -79,6 +87,9 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown error processing batch";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: message },
+      { status: 500 },
+    );
   }
 }
