@@ -1,8 +1,20 @@
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-flash-latest";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-const MAX_RETRIES = 2;
-const BASE_DELAY_MS = 1000; // 1 second initial backoff
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 2000;
+const RATE_LIMIT_WAIT_MS = 60000; // Free tier rate-limit window (~30 req/min)
+
+/** Add jitter (±25%) to prevent thundering herd when multiple requests retry simultaneously */
+function addJitter(delayMs: number): number {
+  const jitterFactor = 0.75 + Math.random() * 0.5; // 0.75 – 1.25
+  return Math.round(delayMs * jitterFactor);
+}
+
+/** Status codes that warrant a retry (rate limiting or transient server errors) */
+function isRetryable(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
 
 async function fetchWithRetry(
   url: string,
@@ -11,15 +23,20 @@ async function fetchWithRetry(
 ): Promise<Response> {
   const res = await fetch(url, options);
 
-  if (res.status === 429 && attempt <= MAX_RETRIES) {
-    // Use Retry-After header if provided, otherwise exponential backoff
+  if (isRetryable(res.status) && attempt <= MAX_RETRIES) {
+    // For 429 (rate limit), wait the full 60s rolling window so quota resets.
+    // For other transient errors (502/503/504), use exponential backoff.
     const retryAfter = res.headers.get("Retry-After");
-    const delayMs = retryAfter
-      ? parseInt(retryAfter, 10) * 1000
-      : BASE_DELAY_MS * Math.pow(2, attempt - 1);
+    const baseDelay =
+      res.status === 429
+        ? retryAfter
+          ? parseInt(retryAfter, 10) * 1000
+          : RATE_LIMIT_WAIT_MS
+        : BASE_DELAY_MS * Math.pow(2, attempt - 1);
+    const delayMs = addJitter(baseDelay);
 
     console.warn(
-      `Gemini API rate limited (429). Retry ${attempt}/${MAX_RETRIES} after ${delayMs}ms...`,
+      `Gemini API returned ${res.status}. Retry ${attempt}/${MAX_RETRIES} after ${delayMs}ms...`,
     );
 
     await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -70,12 +87,14 @@ export async function extractHandwriting(
 
   if (!res.ok) {
     const errorBody = await res.text().catch(() => "");
-    // Provide a clearer message for rate limiting
+
+    // Build a helpful rate-limit message
     if (res.status === 429) {
       throw new Error(
-        `Gemini API rate limit exceeded after ${MAX_RETRIES} retries. Please wait 1-2 minutes before trying again. The free tier allows ~30 requests per minute.`,
+        `Gemini API rate limit exceeded after ${MAX_RETRIES} retries (free tier: ~30 req/min). Please wait 1-2 minutes before trying again, or upgrade to a paid tier for higher limits.`,
       );
     }
+
     throw new Error(
       `Gemini API error (${res.status}): ${res.statusText}${errorBody ? ` — ${errorBody}` : ""}`,
     );

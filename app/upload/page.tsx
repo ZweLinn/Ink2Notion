@@ -48,7 +48,8 @@ export default function UploadPage() {
   }
 
   const handleFiles = useCallback(
-    async (files: File[]) => {
+    async (files: File[], retryCount = 0) => {
+      const MAX_RETRIES = 3;
       setProcessing(true);
       setResults([]);
 
@@ -77,7 +78,7 @@ export default function UploadPage() {
             ]);
           }
         } else {
-          // Bulk
+          // Bulk — sequential with built-in delays on the server
           for (const file of files) {
             formData.append("images", file);
           }
@@ -92,7 +93,20 @@ export default function UploadPage() {
           setResults(data.results || []);
         }
       } catch (err) {
-        toast.error("Failed to process image(s)");
+        const message =
+          err instanceof Error ? err.message : "Failed to process image(s)";
+
+        // Retry on network errors too
+        if (retryCount < MAX_RETRIES) {
+          const backoffMs = 5000 * Math.pow(2, retryCount);
+          toast.info(
+            `Network error — retrying in ${backoffMs / 1000}s (attempt ${retryCount + 1}/${MAX_RETRIES})...`,
+          );
+          await new Promise((r) => setTimeout(r, backoffMs));
+          return handleFiles(files, retryCount + 1);
+        }
+
+        toast.error(message);
         console.error(err);
       } finally {
         setProcessing(false);

@@ -34,8 +34,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Process sequentially with a delay between each to stay within
-    // Gemini free tier limits (~30 requests per minute = 2s spacing).
-    const MIN_INTERVAL_MS = 3000;
+    // Gemini free tier limits (~30 requests per minute ≈ 2s spacing).
+    // We use 4s to be conservative and leave room for other users/requests.
+    const MIN_INTERVAL_MS = 4000;
     const results = [];
     for (let idx = 0; idx < files.length; idx++) {
       const file = files[idx];
